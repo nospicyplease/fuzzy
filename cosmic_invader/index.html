@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cosmic Invader</title>
+<style>
+  body { background: #000; margin: 0; overflow: hidden; }
+  canvas { display: block; margin: 0 auto; background: #111; }
+</style>
+</head>
+<body>
+<canvas id="game" width="480" height="320"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+
+let left = false;
+let right = false;
+let space = false;
+
+const player = { x: W/2, y: H - 20, w: 20, h: 10 };
+const bullets = [];
+const aliens = [];
+const bombs = [];
+let alienDir = 1;
+let gameOver = false;
+
+function createAliens(count) {
+  aliens.length = 0;
+  const padding = 40;
+  const spacing = (W - 2 * padding) / (count - 1);
+  for (let i = 0; i < count; i++) {
+    aliens.push({ x: padding + i * spacing, y: 40, w: 20, h: 10 });
+  }
+}
+
+createAliens(8);
+
+function drawRect(obj, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(obj.x - obj.w/2, obj.y - obj.h/2, obj.w, obj.h);
+}
+
+function draw() {
+  ctx.clearRect(0,0,W,H);
+  drawRect(player, 'cyan');
+  bullets.forEach(b => drawRect(b, 'yellow'));
+  aliens.forEach(a => drawRect(a, 'lime'));
+  bombs.forEach(b => drawRect(b, 'red'));
+}
+
+function updatePlayer() {
+  if (left) player.x -= 3;
+  if (right) player.x += 3;
+  player.x = Math.max(player.w/2, Math.min(W - player.w/2, player.x));
+  if (space) {
+    bullets.push({ x: player.x, y: player.y - 10, w: 4, h: 6 });
+    space = false;
+  }
+}
+
+function updateBullets() {
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    b.y -= 5;
+    if (b.y < 0) bullets.splice(i,1);
+    for (let j = aliens.length -1; j >=0; j--) {
+      const a = aliens[j];
+      if (Math.abs(a.x - b.x) < (a.w+b.w)/2 && Math.abs(a.y - b.y) < (a.h+b.h)/2) {
+        aliens.splice(j,1);
+        bullets.splice(i,1);
+        break;
+      }
+    }
+  }
+}
+
+function updateAliens() {
+  let edge = false;
+  aliens.forEach(a => {
+    a.x += alienDir * 1;
+    if (a.x < 20 || a.x > W - 20) edge = true;
+    if (Math.random() < 0.002) bombs.push({ x:a.x, y:a.y+10, w:4, h:6 });
+  });
+  if (edge) {
+    alienDir *= -1;
+    aliens.forEach(a => a.y += 20);
+  }
+  aliens.forEach(a => {
+    if (a.y > H - 40) gameOver = true;
+  });
+  if (aliens.length === 0) gameOver = true;
+}
+
+function updateBombs() {
+  for (let i = bombs.length - 1; i >= 0; i--) {
+    const b = bombs[i];
+    b.y += 3;
+    if (b.y > H) bombs.splice(i,1);
+    if (Math.abs(b.x - player.x) < (b.w + player.w)/2 && Math.abs(b.y - player.y) < (b.h + player.h)/2) {
+      gameOver = true;
+    }
+  }
+}
+
+function loop() {
+  if (!gameOver) {
+    updatePlayer();
+    updateBullets();
+    updateAliens();
+    updateBombs();
+    draw();
+    requestAnimationFrame(loop);
+  } else {
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(aliens.length === 0 ? 'YOU WIN!' : 'GAME OVER', W/2, H/2);
+  }
+}
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') left = true;
+  if (e.key === 'ArrowRight') right = true;
+  if (e.key === ' ') space = true;
+});
+window.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft') left = false;
+  if (e.key === 'ArrowRight') right = false;
+});
+
+loop();
+</script>
+</body>
+</html>
