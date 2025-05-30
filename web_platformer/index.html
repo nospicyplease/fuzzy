@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Web Platformer</title>
+<style>
+  body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
+  canvas { display: block; margin: 0 auto; background: #87ceeb; }
+</style>
+</head>
+<body>
+<canvas id="game" width="640" height="360"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const TILE = 32;
+const GRAVITY = 0.5;
+const JUMP = -10;
+const level = [
+  "................................................................................",
+  "................................................................................",
+  "................................................................................",
+  "............................###.................................................",
+  ".........................................................................###....",
+  "......................###...............................###....................",
+  "##########...............................................................#####",
+  "##########...............................................................#####",
+  "##########..............#########....................................#########",
+  "########################################################################......"
+];
+const levelWidth = level[0].length * TILE;
+const player = { x: 64, y: 0, w: 28, h: 32, dx: 0, dy: 0, onGround: false };
+const enemies = [ { x: 400, y: 296, w: 28, h: 32, dx: 1, left: 400, right: 600 } ];
+const flag = { x: levelWidth - 64, y: 264, w: 20, h: 64 };
+const keys = {};
+let cameraX = 0;
+let gameOver = false;
+let win = false;
+
+document.addEventListener('keydown', e => keys[e.key] = true);
+document.addEventListener('keyup', e => keys[e.key] = false);
+
+function solidAt(x, y) {
+  const col = Math.floor(x / TILE);
+  const row = Math.floor(y / TILE);
+  return level[row] && level[row][col] === '#';
+}
+
+function movePlayer() {
+  player.dx = 0;
+  if (keys['ArrowLeft']) player.dx = -3;
+  if (keys['ArrowRight']) player.dx = 3;
+  if ((keys['ArrowUp'] || keys[' ']) && player.onGround) {
+    player.dy = JUMP;
+    player.onGround = false;
+  }
+  player.dy += GRAVITY;
+  let nx = player.x + player.dx;
+  let ny = player.y + player.dy;
+  if (player.dx > 0 && (solidAt(nx + player.w, player.y) || solidAt(nx + player.w, player.y + player.h - 1))) {
+    nx = Math.floor((nx + player.w) / TILE) * TILE - player.w;
+  }
+  if (player.dx < 0 && (solidAt(nx, player.y) || solidAt(nx, player.y + player.h - 1))) {
+    nx = Math.floor(nx / TILE + 1) * TILE;
+  }
+  if (player.dy > 0 && (solidAt(nx, ny + player.h) || solidAt(nx + player.w - 1, ny + player.h))) {
+    ny = Math.floor((ny + player.h) / TILE) * TILE - player.h;
+    player.dy = 0;
+    player.onGround = true;
+  } else if (player.dy < 0 && (solidAt(nx, ny) || solidAt(nx + player.w - 1, ny))) {
+    ny = Math.floor(ny / TILE + 1) * TILE;
+    player.dy = 0;
+  }
+  player.x = nx;
+  player.y = ny;
+  if (player.y > canvas.height) gameOver = true;
+}
+
+function moveEnemies() {
+  enemies.forEach(e => {
+    e.dy = (e.dy || 0) + GRAVITY;
+    e.x += e.dx;
+    let nx = e.x;
+    let ny = (e.y += e.dy);
+    if (e.dx > 0 && (solidAt(nx + e.w, e.y) || solidAt(nx + e.w, e.y + e.h - 1))) {
+      e.dx = -e.dx;
+    }
+    if (e.dx < 0 && (solidAt(nx, e.y) || solidAt(nx, e.y + e.h - 1))) {
+      e.dx = -e.dx;
+    }
+    if (solidAt(e.x, e.y + e.h) || solidAt(e.x + e.w - 1, e.y + e.h)) {
+      e.dy = 0;
+    }
+    if (e.x < e.left || e.x > e.right) e.dx = -e.dx;
+    if (intersect(e, player)) gameOver = true;
+  });
+}
+
+function intersect(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function updateCamera() {
+  cameraX = player.x - canvas.width / 2;
+  if (cameraX < 0) cameraX = 0;
+  if (cameraX > levelWidth - canvas.width) cameraX = levelWidth - canvas.width;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let r = 0; r < level.length; r++) {
+    for (let c = 0; c < level[r].length; c++) {
+      if (level[r][c] === '#') {
+        ctx.fillStyle = '#654321';
+        ctx.fillRect(c * TILE - cameraX, r * TILE, TILE, TILE);
+      }
+    }
+  }
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(flag.x - cameraX, flag.y, flag.w, flag.h);
+  ctx.fillStyle = '#00f';
+  ctx.fillRect(player.x - cameraX, player.y, player.w, player.h);
+  ctx.fillStyle = '#f00';
+  enemies.forEach(e => ctx.fillRect(e.x - cameraX, e.y, e.w, e.h));
+}
+
+function checkWin() {
+  if (intersect(player, flag)) {
+    win = true;
+    gameOver = true;
+  }
+}
+
+function loop() {
+  if (gameOver) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px sans-serif';
+    const msg = win ? 'YOU WIN!' : 'GAME OVER';
+    ctx.fillText(msg, canvas.width / 2 - ctx.measureText(msg).width / 2, canvas.height / 2);
+    return;
+  }
+  movePlayer();
+  moveEnemies();
+  updateCamera();
+  checkWin();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
