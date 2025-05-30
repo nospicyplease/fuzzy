@@ -1,5 +1,14 @@
 # Fuzzy
 
-A collection of small experiments. The `cosmic_invader` package now contains a simple browser-based shooter game.
+A collection of small experiments. There are two games in this repository:
 
-See `cosmic_invader/README.md` for details.
+- `cosmic_invader` – a browser-based shooter
+- `platformer` – a simple Mario-style platformer built with Pygame
+
+To run the platformer without changing directories, execute:
+
+```bash
+python run_platformer.py
+```
+
+See each subfolder for more information.
