@@ -20,20 +20,34 @@ const PLAYER_HEIGHT = 10;
 const ALIEN_SIZE = 16;
 const BULLET_HEIGHT = 4;
 const BULLET_WIDTH = 2;
+let alienSpeed = 2;
 let playerX = WIDTH / 2 - PLAYER_WIDTH / 2;
 let bullets = []; // {x, y}
 let aliens = [];
 let alienDir = 1;
 let gameOver = false;
 let win = false;
-function createAliens(count) {
+let level = 1;
+const MAX_LEVEL = 2; // only two levels for now
+
+function createAliens(rows, perRow) {
   aliens = [];
-  const padding = (WIDTH - count * ALIEN_SIZE) / 2;
-  for (let i = 0; i < count; i++) {
-    aliens.push({ x: padding + i * ALIEN_SIZE, y: 20 });
+  for (let r = 0; r < rows; r++) {
+    const y = 20 + r * (ALIEN_SIZE + 5);
+    const padding = (WIDTH - perRow * ALIEN_SIZE) / 2;
+    for (let i = 0; i < perRow; i++) {
+      aliens.push({ x: padding + i * ALIEN_SIZE, y });
+    }
   }
 }
-createAliens(8);
+
+function startLevel() {
+  bullets = [];
+  alienDir = 1;
+  createAliens(level, 8);
+}
+
+startLevel();
 function drawPlayer() {
   ctx.fillStyle = '#0f0';
   ctx.fillRect(playerX, HEIGHT - PLAYER_HEIGHT - 10, PLAYER_WIDTH, PLAYER_HEIGHT);
@@ -48,6 +62,9 @@ function drawBullets() {
 }
 function draw() {
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  ctx.fillStyle = '#0f0';
+  ctx.font = '14px monospace';
+  ctx.fillText('LEVEL ' + level, 10, 20);
   drawPlayer();
   drawAliens();
   drawBullets();
@@ -73,7 +90,7 @@ function updateBullets() {
 function updateAliens() {
   let edge = false;
   aliens.forEach(a => {
-    a.x += alienDir * 2;
+    a.x += alienDir * alienSpeed;
     if (a.x <= 0 || a.x + ALIEN_SIZE >= WIDTH) edge = true;
   });
   if (edge) {
@@ -84,8 +101,14 @@ function updateAliens() {
     });
   }
   if (aliens.length === 0) {
-    win = true;
-    gameOver = true;
+    level++;
+    if (level > MAX_LEVEL) {
+      win = true;
+      gameOver = true;
+    } else {
+      alienSpeed += 1;
+      startLevel();
+    }
   }
 }
 function loop() {
