@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Cosmic Invader</title>
+<style>
+  body { margin: 0; background: #000; color: #0f0; font-family: monospace; }
+  canvas { display: block; margin: 0 auto; background: #000; }
+</style>
+</head>
+<body>
+<canvas id="game" width="400" height="300"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const WIDTH = canvas.width;
+const HEIGHT = canvas.height;
+const PLAYER_WIDTH = 20;
+const PLAYER_HEIGHT = 10;
+const ALIEN_SIZE = 16;
+const BULLET_HEIGHT = 4;
+const BULLET_WIDTH = 2;
+let playerX = WIDTH / 2 - PLAYER_WIDTH / 2;
+let bullets = []; // {x, y}
+let aliens = [];
+let alienDir = 1;
+let gameOver = false;
+let win = false;
+function createAliens(count) {
+  aliens = [];
+  const padding = (WIDTH - count * ALIEN_SIZE) / 2;
+  for (let i = 0; i < count; i++) {
+    aliens.push({ x: padding + i * ALIEN_SIZE, y: 20 });
+  }
+}
+createAliens(8);
+function drawPlayer() {
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(playerX, HEIGHT - PLAYER_HEIGHT - 10, PLAYER_WIDTH, PLAYER_HEIGHT);
+}
+function drawAliens() {
+  ctx.fillStyle = '#f00';
+  aliens.forEach(a => ctx.fillRect(a.x, a.y, ALIEN_SIZE, ALIEN_SIZE));
+}
+function drawBullets() {
+  ctx.fillStyle = '#ff0';
+  bullets.forEach(b => ctx.fillRect(b.x, b.y, BULLET_WIDTH, BULLET_HEIGHT));
+}
+function draw() {
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  drawPlayer();
+  drawAliens();
+  drawBullets();
+}
+function updateBullets() {
+  bullets = bullets.filter(b => {
+    b.y -= 4;
+    for (let i = 0; i < aliens.length; i++) {
+      const a = aliens[i];
+      if (
+        b.x < a.x + ALIEN_SIZE &&
+        b.x + BULLET_WIDTH > a.x &&
+        b.y < a.y + ALIEN_SIZE &&
+        b.y + BULLET_HEIGHT > a.y
+      ) {
+        aliens.splice(i, 1);
+        return false;
+      }
+    }
+    return b.y > 0;
+  });
+}
+function updateAliens() {
+  let edge = false;
+  aliens.forEach(a => {
+    a.x += alienDir * 2;
+    if (a.x <= 0 || a.x + ALIEN_SIZE >= WIDTH) edge = true;
+  });
+  if (edge) {
+    alienDir *= -1;
+    aliens.forEach(a => {
+      a.y += ALIEN_SIZE / 2;
+      if (a.y + ALIEN_SIZE >= HEIGHT - PLAYER_HEIGHT - 10) gameOver = true;
+    });
+  }
+  if (aliens.length === 0) {
+    win = true;
+    gameOver = true;
+  }
+}
+function loop() {
+  if (gameOver) {
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px monospace';
+    const msg = win ? 'YOU WIN' : 'GAME OVER';
+    ctx.fillText(msg, WIDTH / 2 - ctx.measureText(msg).width / 2, HEIGHT / 2);
+    return;
+  }
+  updateBullets();
+  updateAliens();
+  draw();
+  requestAnimationFrame(loop);
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' && playerX > 0) {
+    playerX -= 10;
+  } else if (e.key === 'ArrowRight' && playerX < WIDTH - PLAYER_WIDTH) {
+    playerX += 10;
+  } else if (e.key === ' ' || e.key === 'Spacebar') {
+    bullets.push({ x: playerX + PLAYER_WIDTH / 2, y: HEIGHT - PLAYER_HEIGHT - 14 });
+  }
+});
+loop();
+</script>
+</body>
+</html>
